@@ -1,5 +1,6 @@
 package com.cihangir.kafka.config;
 
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,7 +10,6 @@ import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
-import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 
 import java.util.HashMap;
@@ -29,8 +29,7 @@ public class ConsumerTopicConfig {
 
     //<Key,Value> pair should match with producer factory.
     //groupId -> consumerGroupId
-    public ConsumerFactory<String, Object> consumerFactory(String groupId, String isolationLevel)
-    {
+    public ConsumerFactory<String, Object> consumerFactory(String groupId, String isolationLevel) {
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapAddress);
         //Different consumer groups can share the same record or same consumer-group can share the work.
@@ -40,14 +39,18 @@ public class ConsumerTopicConfig {
         //In default, consumer does not wait to producer-done-commit-state. -> unread_committed.
         props.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, Objects.requireNonNullElse(isolationLevel, ConsumerConfig.DEFAULT_ISOLATION_LEVEL));
 
+
+
+        //Producer records can be any class under this package.
         JsonDeserializer<Object> jsonDeserializer = new JsonDeserializer<>();
+        jsonDeserializer.addTrustedPackages("*");
+
         return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), jsonDeserializer);
     }
 
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, Object> firstKafkaListenerContainerFactory()
-    {
+    public ConcurrentKafkaListenerContainerFactory<String, Object> firstKafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, Object> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory("groupId1"));
         factory.setConcurrency(3);
@@ -56,6 +59,10 @@ public class ConsumerTopicConfig {
     }
 
 
+    @Bean
+    public Consumer<String, Object> manualConsumer() {
+        return consumerFactory("groupManual").createConsumer();
+    }
 
 
 }

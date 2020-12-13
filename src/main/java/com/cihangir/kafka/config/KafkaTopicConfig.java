@@ -30,4 +30,5 @@ public class KafkaTopicConfig {
         return new KafkaAdmin(configs);
     }
 
+
 }
